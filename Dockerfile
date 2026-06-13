@@ -43,7 +43,9 @@ EXPOSE 6080
 CMD bash -c '\
     vncserver :1 -localhost no -SecurityTypes None -geometry 1280x800 && \
     openssl req -new -subj "/C=US" -x509 -days 365 -nodes \
-    -out /root/self.pem -keyout /root/self.pem && \
-    websockify -D --web=/usr/share/novnc \
-    --cert=/root/self.pem 6080 localhost:5901 && \
+        -out /root/self.pem -keyout /root/self.pem && \
+    websockify -D \
+        --web=/usr/share/novnc \
+        --cert=/root/self.pem \
+        6080 localhost:5901 && \
     tail -f /dev/null'
