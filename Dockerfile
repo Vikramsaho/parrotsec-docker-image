@@ -4,7 +4,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
 RUN for i in {1..10}; do \
-      apt-get update && break || sleep 30; \
+      apt-get update && break; \
+      echo "Retrying in 30s..."; \
+      sleep 30; \
     done && \
     apt-get install -y --no-install-recommends \
       xfce4 \
@@ -26,9 +28,9 @@ RUN for i in {1..10}; do \
       git \
       tzdata \
       ca-certificates \
-      openssl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+      openssl \
+      apt-get clean && \
+      rm -rf /var/lib/apt/lists/*
     
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
