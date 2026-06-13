@@ -1,51 +1,46 @@
 FROM --platform=linux/amd64 parrotsec/security:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:1
 
-RUN apt update && apt install --no-install-recommends -y 
+RUN apt update && 
+apt install -y --no-install-recommends 
 xfce4 
 xfce4-goodies 
 tigervnc-standalone-server 
-novnc 
 websockify 
-sudo 
 xterm 
 vim 
-net-tools 
 curl 
 wget 
 git 
+net-tools 
+sudo 
 tzdata 
 dbus-x11 
 x11-utils 
 x11-xserver-utils 
 x11-apps 
 firefox-esr 
-parrot-menu 
-&& apt clean 
-&& rm -rf /var/lib/apt/lists/*
+openssl && 
+apt clean && 
+rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /root/.vnc
 
-RUN echo '#!/bin/bash\nxrdb $HOME/.Xresources\nstartxfce4 &' > /root/.vnc/xstartup && 
+RUN printf '#!/bin/bash\nxrdb $HOME/.Xresources\nstartxfce4 &\n' > /root/.vnc/xstartup && 
 chmod +x /root/.vnc/xstartup
 
 RUN touch /root/.Xauthority
 
+RUN mkdir -p /opt/novnc && 
+wget -qO- https://github.com/novnc/noVNC/archive/refs/heads/master.tar.gz | 
+tar xz --strip-components=1 -C /opt/novnc
+
 EXPOSE 5901
 EXPOSE 6080
 
-CMD bash -c '
-vncserver :1 
--localhost no 
--SecurityTypes None 
--geometry 1366x768 
--depth 24 && 
-openssl req -new -subj "/C=US" -x509 -days 365 -nodes 
--out /root/self.pem 
--keyout /root/self.pem && 
-websockify -D 
---web=/usr/share/novnc 
---cert=/root/self.pem 
-6080 localhost:5901 && 
-tail -f /dev/null'
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
