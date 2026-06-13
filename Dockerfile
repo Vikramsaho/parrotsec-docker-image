@@ -4,23 +4,20 @@ FROM --platform=linux/amd64 parrotsec/security
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
-# Fix mirrors + update + install desktop & VNC packages
-RUN apt update -y || true && \
-    apt-get update -o Acquire::ForceIPv4=true -y && \
-    apt install -y --no-install-recommends \
+# Reliable update + minimal essential packages for XFCE + VNC
+RUN apt-get update -o Acquire::ForceIPv4=true -y && \
+    apt-get install -y --no-install-recommends \
     xfce4 \
     xfce4-goodies \
     tigervnc-standalone-server \
     novnc \
     websockify \
-    firefox \
     sudo \
     xterm \
     dbus-x11 \
     x11-utils \
     x11-xserver-utils \
     x11-apps \
-    snapd \
     vim \
     net-tools \
     curl \
@@ -29,9 +26,16 @@ RUN apt update -y || true && \
     tzdata \
     ca-certificates \
     openssl \
-    && apt clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Prepare X11 auth and VNC startup
+# Firefox (Parrot-specific handling)
+RUN apt-get update -o Acquire::ForceIPv4=true -y && \
+    apt-get install -y --no-install-recommends \
+    parrot-interface-common \
+    parrot-firefox-profiles \
+    firefox-esr || true
+
+# VNC startup configuration
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
     echo '#!/bin/bash' > /root/.vnc/xstartup && \
