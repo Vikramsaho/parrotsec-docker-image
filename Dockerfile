@@ -3,28 +3,32 @@ FROM parrotsec/security:latest
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
-RUN apt-get update -o Acquire::Retries=5 && \
-    apt-get install -y --fix-missing --no-install-recommends \
-    xfce4 \
-    xfce4-goodies \
-    tigervnc-standalone-server \
-    novnc \
-    websockify \
-    sudo \
-    xterm \
-    dbus-x11 \
-    x11-utils \
-    x11-xserver-utils \
-    x11-apps \
-    snapd \
-    vim \
-    net-tools \
-    curl \
-    wget \
-    git \
-    tzdata \
-    ca-certificates \
-    openssl
+RUN for i in {1..10}; do \
+      apt-get update && break || sleep 30; \
+    done && \
+    apt-get install -y --no-install-recommends \
+      xfce4 \
+      xfce4-goodies \
+      tigervnc-standalone-server \
+      novnc \
+      websockify \
+      sudo \
+      xterm \
+      dbus-x11 \
+      x11-utils \
+      x11-xserver-utils \
+      x11-apps \
+      snapd \
+      vim \
+      net-tools \
+      curl \
+      wget \
+      git \
+      tzdata \
+      ca-certificates \
+      openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
     
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
