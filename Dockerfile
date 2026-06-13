@@ -1,12 +1,13 @@
 # Parrot Security base image (amd64)
-FROM --platform=linux/amd64 parrotsec/security:latest
+FROM --platform=linux/amd64 parrotsec/security
 
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
 # Update and install XFCE desktop + VNC + noVNC + essentials
 RUN apt update -y && apt install -y --no-install-recommends \
-    parrot-desktop-xfce \
+    xfce4 \
+    xfce4-goodies \
     tigervnc-standalone-server \
     novnc \
     websockify \
@@ -26,30 +27,22 @@ RUN apt update -y && apt install -y --no-install-recommends \
     tzdata \
     ca-certificates \
     openssl \
-    && apt clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create VNC configuration directory
-RUN mkdir -p /root/.vnc
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
 # Prepare X11 auth file
 RUN touch /root/.Xauthority
 
-# Expose VNC and noVNC ports
+# Expose VNC (5901) + noVNC WebSocket (6080)
 EXPOSE 5901
 EXPOSE 6080
 
-# Start XFCE session when VNC starts
-RUN echo '#!/bin/bash' > /root/.vnc/xstartup && \
-    echo 'xrdb $HOME/.Xresources' >> /root/.vnc/xstartup && \
-    echo 'startxfce4 &' >> /root/.vnc/xstartup && \
-    chmod +x /root/.vnc/xstartup
-
-# Launch VNC server + self-signed cert + noVNC + keep container alive
+# Launch VNC server + self-signed cert + noVNC + keep alive
+# For Parrot, startx / startxfce4 may be used
 CMD bash -c '\
-    vncserver :1 -localhost no -SecurityTypes None -geometry 1280x800 && \
-    openssl req -new -subj "/C=JP" -x509 -days 365 -nodes \
-        -out /root/self.pem -keyout /root/self.pem && \
-    websockify -D --web=/usr/share/novnc/ \
-        --cert=/root/self.pem 6080 localhost:5901 && \
+    mkdir -p ~/.vnc && \
+    echo "startxfce4" > ~/.vnc/xstartup && \
+    chmod +x ~/.vnc/xstartup && \
+    vncserver -localhost no -SecurityTypes None -geometry 1280x800 --I-KNOW-THIS-IS-INSECURE && \
+    openssl req -new -subj "/C=JP" -x509 -days 365 -nodes -out self.pem -keyout self.pem && \
+    websockify -D --web=/usr/share/novnc/ --cert=self.pem 6080 localhost:5901 && \
     tail -f /dev/null'
