@@ -3,7 +3,7 @@ FROM parrotsec/security:latest
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
-RUN apt-get update && \
+RUN apt-get update -o Acquire::Retries=5 && \
     apt-get install -y --fix-missing --no-install-recommends \
     xfce4 \
     xfce4-goodies \
@@ -24,9 +24,7 @@ RUN apt-get update && \
     git \
     tzdata \
     ca-certificates \
-    openssl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    openssl
     
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
