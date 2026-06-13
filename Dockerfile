@@ -3,9 +3,8 @@ FROM parrotsec/security:latest
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
-RUN apt update -y || true && \
-    apt-get update -o Acquire::ForceIPv4=true && \
-    apt install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --fix-missing --no-install-recommends \
     xfce4 \
     xfce4-goodies \
     tigervnc-standalone-server \
@@ -26,9 +25,9 @@ RUN apt update -y || true && \
     tzdata \
     ca-certificates \
     openssl && \
-    apt clean && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
+    
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
     echo '#!/bin/bash' > /root/.vnc/xstartup && \
