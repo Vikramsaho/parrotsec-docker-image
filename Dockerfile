@@ -1,51 +1,38 @@
-# Parrot Security base image (amd64) - Robust mirror handling
+# Parrot Security base - Fixed mirror + minimal desktop
 FROM --platform=linux/amd64 parrotsec/security
 
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
-# Aggressive mirror fix + install parrot-desktop-xfce
-RUN apt-get update -o Acquire::ForceIPv4=true -y || true && \
+# Force better mirror + install desktop
+RUN sed -i 's|deb.parrot.sh|deb.parrotsec.org|g' /etc/apt/sources.list.d/*.list && \
+    apt-get update -o Acquire::ForceIPv4=true -y || true && \
     apt-get update -o Acquire::ForceIPv4=true --fix-missing -y && \
     apt-get install -y --no-install-recommends \
     parrot-desktop-xfce \
     tigervnc-standalone-server \
     novnc \
     websockify \
-    sudo \
-    xterm \
-    dbus-x11 \
-    x11-utils \
-    x11-xserver-utils \
-    x11-apps \
-    vim \
-    net-tools \
-    curl \
-    wget \
-    git \
-    tzdata \
-    ca-certificates \
-    openssl \
+    sudo xterm dbus-x11 x11-utils x11-xserver-utils x11-apps \
+    vim net-tools curl wget git tzdata ca-certificates openssl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Firefox
+# Firefox fallback
 RUN apt-get update -o Acquire::ForceIPv4=true -y && \
-    apt-get install -y --no-install-recommends \
-    parrot-interface-common \
-    parrot-firefox-profiles \
-    firefox-esr || true
+    apt-get install -y --no-install-recommends parrot-interface-common parrot-firefox-profiles firefox-esr || true
 
-# VNC configuration
+# VNC setup
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
-    echo '#!/bin/bash' > /root/.vnc/xstartup && \
-    echo 'unset SESSION_MANAGER' >> /root/.vnc/xstartup && \
-    echo 'unset DBUS_SESSION_BUS_ADDRESS' >> /root/.vnc/xstartup && \
-    echo 'startxfce4 &' >> /root/.vnc/xstartup && \
+    cat > /root/.vnc/xstartup << 'EOF'
+#!/bin/bash
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+startxfce4 &
+EOF
     chmod +x /root/.vnc/xstartup
 
-EXPOSE 5901
-EXPOSE 6080
+EXPOSE 5901 6080
 
 CMD bash -c '\
     vncserver -localhost no -SecurityTypes None -geometry 1280x800 --I-KNOW-THIS-IS-INSECURE && \
