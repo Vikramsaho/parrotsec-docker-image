@@ -33,10 +33,6 @@ chmod +x /root/.vnc/xstartup
 
 RUN touch /root/.Xauthority
 
-RUN mkdir -p /opt/novnc && 
-wget -qO- https://github.com/novnc/noVNC/archive/refs/heads/master.tar.gz | 
-tar xz --strip-components=1 -C /opt/novnc
-
 EXPOSE 5901
 EXPOSE 6080
 
