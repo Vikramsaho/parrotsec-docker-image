@@ -1,37 +1,41 @@
-FROM parrotsec/security:latest
+# Parrot Security base image (amd64) - Robust mirror handling
+FROM --platform=linux/amd64 parrotsec/security
 
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 
-RUN for i in {1..10}; do \
-      apt-get update && break; \
-      echo "Retrying in 30s..."; \
-      sleep 30; \
-    done && \
+# Aggressive mirror fix + install parrot-desktop-xfce
+RUN apt-get update -o Acquire::ForceIPv4=true -y || true && \
+    apt-get update -o Acquire::ForceIPv4=true --fix-missing -y && \
     apt-get install -y --no-install-recommends \
-      xfce4 \
-      xfce4-goodies \
-      tigervnc-standalone-server \
-      novnc \
-      websockify \
-      sudo \
-      xterm \
-      dbus-x11 \
-      x11-utils \
-      x11-xserver-utils \
-      x11-apps \
-      snapd \
-      vim \
-      net-tools \
-      curl \
-      wget \
-      git \
-      tzdata \
-      ca-certificates \
-      openssl \
-      apt-get clean && \
-      rm -rf /var/lib/apt/lists/*
-    
+    parrot-desktop-xfce \
+    tigervnc-standalone-server \
+    novnc \
+    websockify \
+    sudo \
+    xterm \
+    dbus-x11 \
+    x11-utils \
+    x11-xserver-utils \
+    x11-apps \
+    vim \
+    net-tools \
+    curl \
+    wget \
+    git \
+    tzdata \
+    ca-certificates \
+    openssl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Firefox
+RUN apt-get update -o Acquire::ForceIPv4=true -y && \
+    apt-get install -y --no-install-recommends \
+    parrot-interface-common \
+    parrot-firefox-profiles \
+    firefox-esr || true
+
+# VNC configuration
 RUN touch /root/.Xauthority && \
     mkdir -p /root/.vnc && \
     echo '#!/bin/bash' > /root/.vnc/xstartup && \
@@ -44,11 +48,7 @@ EXPOSE 5901
 EXPOSE 6080
 
 CMD bash -c '\
-    vncserver :1 -localhost no -SecurityTypes None -geometry 1280x800 && \
-    openssl req -new -subj "/C=US" -x509 -days 365 -nodes \
-        -out /root/self.pem -keyout /root/self.pem && \
-    websockify -D \
-        --web=/usr/share/novnc \
-        --cert=/root/self.pem \
-        6080 localhost:5901 && \
+    vncserver -localhost no -SecurityTypes None -geometry 1280x800 --I-KNOW-THIS-IS-INSECURE && \
+    openssl req -new -subj "/C=JP" -x509 -days 365 -nodes -out /self.pem -keyout /self.pem && \
+    websockify -D --web=/usr/share/novnc/ --cert=/self.pem 6080 localhost:5901 && \
     tail -f /dev/null'
