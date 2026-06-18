@@ -1,89 +1,55 @@
 FROM parrotsec/security:latest
 
+# Railway will override PORT; keep a local default
+ENV PORT=7681
 ENV DEBIAN_FRONTEND=noninteractive
-ENV DISPLAY=:1
 
-SHELL ["/bin/bash", "-c"]
+# Ensure the target directory exists
+RUN mkdir -p /usr/local/bin
 
-# Retry apt update because Parrot mirrors often return 502
-RUN for i in {1..10}; do \
-        apt-get update && break; \
-        echo "APT update failed. Retrying in 30 seconds..."; \
-        sleep 30; \
-    done && \
-    apt-get install -y --no-install-recommends \
-        xfce4 \
-        xfce4-goodies \
-        tigervnc-standalone-server \
-        novnc \
-        websockify \
-        sudo \
-        xterm \
-        dbus-x11 \
-        x11-utils \
-        x11-xserver-utils \
-        x11-apps \
-        snapd \
-        vim \
-        net-tools \
-        curl \
-        wget \
-        git \
-        tzdata \
-        ca-certificates \
-        openssl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# 1. Download Tini directly from GitHub (bypasses broken apt repos)
+ENV TINI_VERSION v0.19.0
+RUN set -eux; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+      x86_64|amd64) tini_asset="tini" ;; \
+      aarch64|arm64) tini_asset="tini-arm64" ;; \
+      *) echo "Unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    wget -qO /usr/local/bin/tini "https://github.com{TINI_VERSION}/${tini_asset}" \
+    && chmod +x /usr/local/bin/tini
 
-# VNC configuration
-RUN mkdir -p /root/.vnc
+# 2. Download Fastfetch directly from GitHub (bypasses broken apt repos)
+ENV FASTFETCH_VERSION 2.15.0
+RUN set -eux; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+      x86_64|amd64) ff_asset="fastfetch-linux-amd64.tar.gz" ;; \
+      aarch64|arm64) ff_asset="fastfetch-linux-aarch64.tar.gz" ;; \
+      *) echo "Unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    wget -qO /tmp/ff.tar.gz "https://github.com{FASTFETCH_VERSION}/${ff_asset}" \
+    && tar -xzf /tmp/ff.tar.gz -C /tmp \
+    && mv /tmp/fastfetch-linux-*/usr/bin/fastfetch /usr/local/bin/fastfetch \
+    && rm -rf /tmp/ff.tar.gz /tmp/fastfetch-linux-*
 
-RUN cat > /root/.vnc/xstartup << 'EOF'
-#!/bin/bash
-unset SESSION_MANAGER
-unset DBUS_SESSION_BUS_ADDRESS
-xrdb $HOME/.Xresources
-startxfce4 &
-EOF
+# 3. Install latest ttyd (bypasses broken apt repos)
+RUN set -eux; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+      x86_64|amd64) ttyd_asset="ttyd.x86_64" ;; \
+      aarch64|arm64) ttyd_asset="ttyd.aarch64" ;; \
+      *) echo "Unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    wget -qO /usr/local/bin/ttyd "https://github.com{ttyd_asset}" \
+    && chmod +x /usr/local/bin/ttyd
 
-RUN chmod +x /root/.vnc/xstartup
+# Show system info on shell start (Updated path to /usr/local/bin/fastfetch)
+RUN echo "/usr/local/bin/fastfetch || true" >> /root/.bashrc
 
-RUN touch /root/.Xauthority
+EXPOSE 7681
 
-# Startup script
-RUN cat > /start.sh << 'EOF'
-#!/bin/bash
+# Updated entrypoint path to point to /usr/local/bin/tini
+ENTRYPOINT ["/usr/local/bin/tini","--"]
 
-rm -rf /tmp/.X1-lock /tmp/.X11-unix/X1
-
-vncserver :1 \
-    -localhost no \
-    -SecurityTypes None \
-    -geometry 1280x800 \
-    -depth 24
-
-if [ ! -f /root/self.pem ]; then
-    openssl req \
-        -new \
-        -x509 \
-        -days 365 \
-        -nodes \
-        -subj "/C=US/ST=None/L=None/O=Parrot/CN=localhost" \
-        -out /root/self.pem \
-        -keyout /root/self.pem
-fi
-
-websockify \
-    --web=/usr/share/novnc \
-    --cert=/root/self.pem \
-    6080 localhost:5901 &
-
-tail -f /root/.vnc/*.log
-EOF
-
-RUN chmod +x /start.sh
-
-EXPOSE 5901
-EXPOSE 6080
-
-CMD ["/start.sh"]
+CMD ["/bin/bash","-lc", "/usr/local/bin/ttyd --writable -i 0.0.0.0 -p ${PORT} -c ${USERNAME}:${PASSWORD} /bin/bash"]
