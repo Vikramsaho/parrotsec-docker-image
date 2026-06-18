@@ -7,8 +7,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Ensure the target directory exists
 RUN mkdir -p /usr/local/bin
 
-# 1. Download Tini directly from GitHub (bypasses broken apt repos)
-ENV TINI_VERSION v0.19.0
+# 1. Download Tini directly from GitHub (Corrected path structure)
+ENV TINI_VERSION=v0.19.0
 RUN set -eux; \
     arch="$(uname -m)"; \
     case "$arch" in \
@@ -19,8 +19,8 @@ RUN set -eux; \
     wget -qO /usr/local/bin/tini "https://github.com{TINI_VERSION}/${tini_asset}" \
     && chmod +x /usr/local/bin/tini
 
-# 2. Download Fastfetch directly from GitHub (bypasses broken apt repos)
-ENV FASTFETCH_VERSION 2.15.0
+# 2. Download Fastfetch directly from GitHub (Corrected path structure)
+ENV FASTFETCH_VERSION=2.15.0
 RUN set -eux; \
     arch="$(uname -m)"; \
     case "$arch" in \
@@ -33,7 +33,7 @@ RUN set -eux; \
     && mv /tmp/fastfetch-linux-*/usr/bin/fastfetch /usr/local/bin/fastfetch \
     && rm -rf /tmp/ff.tar.gz /tmp/fastfetch-linux-*
 
-# 3. Install latest ttyd (bypasses broken apt repos)
+# 3. Install latest ttyd
 RUN set -eux; \
     arch="$(uname -m)"; \
     case "$arch" in \
@@ -44,12 +44,12 @@ RUN set -eux; \
     wget -qO /usr/local/bin/ttyd "https://github.com{ttyd_asset}" \
     && chmod +x /usr/local/bin/ttyd
 
-# Show system info on shell start (Updated path to /usr/local/bin/fastfetch)
+# Show system info on shell start 
 RUN echo "/usr/local/bin/fastfetch || true" >> /root/.bashrc
 
 EXPOSE 7681
 
-# Updated entrypoint path to point to /usr/local/bin/tini
+# Set the correct entrypoint to run under Tini
 ENTRYPOINT ["/usr/local/bin/tini","--"]
 
 CMD ["/bin/bash","-lc", "/usr/local/bin/ttyd --writable -i 0.0.0.0 -p ${PORT} -c ${USERNAME}:${PASSWORD} /bin/bash"]
