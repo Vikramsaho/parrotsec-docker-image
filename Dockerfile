@@ -1,13 +1,13 @@
 FROM parrotsec/security:latest
 
-# Railway will override PORT; keep a local default
+# Railway overrides PORT dynamically; set fallback default
 ENV PORT=7681
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Ensure the target directory exists
+# Ensure our binaries target directory exists
 RUN mkdir -p /usr/local/bin
 
-# 1. Download Tini directly from GitHub (Corrected path structure)
+# 1. Download Tini cleanly from explicit GitHub releases endpoint
 ENV TINI_VERSION=v0.19.0
 RUN set -eux; \
     arch="$(uname -m)"; \
@@ -19,7 +19,7 @@ RUN set -eux; \
     wget -qO /usr/local/bin/tini "https://github.com{TINI_VERSION}/${tini_asset}" \
     && chmod +x /usr/local/bin/tini
 
-# 2. Download Fastfetch directly from GitHub (Corrected path structure)
+# 2. Download Fastfetch cleanly from explicit GitHub releases endpoint
 ENV FASTFETCH_VERSION=2.15.0
 RUN set -eux; \
     arch="$(uname -m)"; \
@@ -33,7 +33,7 @@ RUN set -eux; \
     && mv /tmp/fastfetch-linux-*/usr/bin/fastfetch /usr/local/bin/fastfetch \
     && rm -rf /tmp/ff.tar.gz /tmp/fastfetch-linux-*
 
-# 3. Install latest ttyd
+# 3. Download ttyd cleanly from explicit GitHub releases endpoint
 RUN set -eux; \
     arch="$(uname -m)"; \
     case "$arch" in \
@@ -44,12 +44,12 @@ RUN set -eux; \
     wget -qO /usr/local/bin/ttyd "https://github.com{ttyd_asset}" \
     && chmod +x /usr/local/bin/ttyd
 
-# Show system info on shell start 
+# Output system environment metrics on web session startup
 RUN echo "/usr/local/bin/fastfetch || true" >> /root/.bashrc
 
 EXPOSE 7681
 
-# Set the correct entrypoint to run under Tini
+# Route initialization execution contexts via Tini
 ENTRYPOINT ["/usr/local/bin/tini","--"]
 
 CMD ["/bin/bash","-lc", "/usr/local/bin/ttyd --writable -i 0.0.0.0 -p ${PORT} -c ${USERNAME}:${PASSWORD} /bin/bash"]
